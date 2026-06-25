@@ -1,0 +1,67 @@
+# Worked-example target — also the regression fixture for the generalization.
+# The generalized scraper is correct only when `--target askedgar` reproduces the
+# behavior of seed/scrape_askedgar_reference.py (same 30 slugs, equivalent output).
+#
+# Field shapes here are a PROPOSAL for TargetConfig — adjust when you build config.py,
+# but keep the AskEdgar values intact (they are ground truth).
+
+name: askedgar
+base_url: "https://askedgar.readme.io"
+seed_url: "https://askedgar.readme.io/reference/health_check_health_get"
+output_path: "output/askedgar-reference-raw.md"
+
+# Header block prepended to the output file.
+header:
+  title: "AskEdgar API Reference — Raw Scraped Output"
+  purpose: "Gap-check against the local askedgar-api-docs.md source-of-truth"
+
+# Discovery tuning (defaults preserve the seed's behavior).
+link_pattern: "/reference/"
+slug_methods: [get, post, put, delete, patch]
+discovery_min_slugs: 5          # below this, fall back to fallback_slugs
+
+# Extraction tuning (defaults preserve the seed's behavior).
+content_selectors:
+  - "article"
+  - "div[role=main]"
+  - "main"
+  - "body"
+
+# Politeness / SPA-hydration timings.
+page_timeout_ms: 25000
+settle_seconds: 2.5
+polite_delay_seconds: 0.8
+
+# Safety net for when auto-discovery returns < discovery_min_slugs.
+# 30 endpoints confirmed from the AskEdgar sidebar on 2026-05-09.
+fallback_slugs:
+  - { label: "Health Check",                              slug: "health_check_health_get" }
+  - { label: "Endpoint Listing",                          slug: "list_endpoints_endpoints_get" }
+  - { label: "Reverse Splits",                            slug: "reverse_splits_v1_reverse_splits_get" }
+  - { label: "Float, Outstanding, Market Cap & Key Data", slug: "float_outstanding_v1_float_outstanding_get" }
+  - { label: "Dilution Rating",                           slug: "dilution_rating_v1_dilution_rating_get" }
+  - { label: "Historical Dilution Rating",                slug: "historical_dilution_v1_historical_dilution_get" }
+  - { label: "Nasdaq Compliance",                         slug: "nasdaq_compliance_v1_nasdaq_compliance_get" }
+  - { label: "Offerings — Funds & Underwriters",          slug: "offerings_advanced_v1_offerings_advanced_get" }
+  - { label: "Dilution Data",                             slug: "dilution_data_v1_dilution_data_get" }
+  - { label: "Offerings",                                 slug: "offerings_v1_offerings_get" }
+  - { label: "Dilution Data — Funds & Underwriters",      slug: "funds_underwriters_v1_dilution_data_advanced_get" }
+  - { label: "Historical Float & Market Cap",             slug: "historical_float_pro_v1_historical_float_pro_get" }
+  - { label: "Right of First Refusals & Tail Financings", slug: "rofr_v1_rofr_get" }
+  - { label: "Pump & Dump Tracker",                       slug: "pump_and_dump_tracker_v1_pump_and_dump_tracker_get" }
+  - { label: "News",                                      slug: "news_v1_news_get" }
+  - { label: "News Basic",                                slug: "news_basic_v1_news_basic_get" }
+  - { label: "Registrations",                             slug: "registrations_v1_registrations_get" }
+  - { label: "Agreements",                                slug: "agreements_v1_agreements_get" }
+  - { label: "AI Gap Analysis",                           slug: "ai_chart_analysis_v1_ai_chart_analysis_get" }
+  - { label: "Ownership",                                 slug: "ownership_v1_ownership_get" }
+  - { label: "Research Reports",                          slug: "research_reports_v1_research_reports_get" }
+  - { label: "Research Reports — Short",                  slug: "research_reports_short_v1_research_reports_short_get" }
+  - { label: "Research Reports — TLDR",                   slug: "research_reports_tldr_v1_research_reports_tldr_get" }
+  - { label: "Screener",                                  slug: "screener_v1_screener_get" }
+  - { label: "Screener Options",                          slug: "screener_options_v1_screener_options_get" }
+  - { label: "Market Strength",                           slug: "market_strength_v1_market_strength_get" }
+  - { label: "Filing Titles",                             slug: "filing_titles_v1_filing_titles_get" }
+  - { label: "Corporate Actions (Split Status)",          slug: "split_status_v1_split_status_get" }
+  - { label: "Historical Tickers",                        slug: "historical_tickers_v1_historical_tickers_get" }
+  - { label: "Gap Stats",                                 slug: "gap_stats_v1_gap_stats_get" }
