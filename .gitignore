@@ -1,0 +1,20 @@
+CLAUDE.md
+MACHINE-SETUP.md
+.env
+.env*.local
+node_modules/
+.next/
+dist/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.mypy_cache/
+venv/
+.venv/
+
+# Scrape output (live snapshots are regenerated, not tracked)
+output/
+docs/*-reference-raw.md

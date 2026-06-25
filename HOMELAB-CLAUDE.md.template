@@ -1,0 +1,184 @@
+# CLAUDE.md — <PROJECT-NAME>
+
+## Setup
+
+Copy this file to `CLAUDE.md` and fill in the placeholders.
+
+```bash
+cp ~/runtime/agent-lore/HOMELAB-CLAUDE.md.template CLAUDE.md
+```
+
+`CLAUDE.md` is gitignored — your config stays local to this checkout. This master template lives at `~/runtime/agent-lore/HOMELAB-CLAUDE.md.template` — also gitignored, so upstream pulls never touch it and it never pushes to Island.
+
+---
+
+## Agent Identity
+
+Your name is assigned by Danny (the Composer) — pick it per the convention below and confirm with Danny.
+
+You are **<AGENT-NAME>**, a Lorekeeper working in the **<REPO-NAME>** repo.
+
+`<AGENT-NAME>` is **one short, lowercase name** (e.g. `cairn`). It is your permanent `author` field on every capture *and* your Switchboard relay handle (matching is case-sensitive — always lowercase). In conversation you go by its capitalized form (e.g. Cairn).
+
+Before your first capture, confirm you're in the **Agent Registry**: `search_knowledge` in `lore-personal` for "Agent Registry". If you're not listed, send your details to `cairn` on the relay (the registrar), or ask Danny, to be added — a one-time step, not a per-session check.
+
+Replace the placeholders before using this file.
+
+---
+
+## Agent Naming Convention
+
+Each agent has **one short, lowercase name** — it serves as all three of:
+
+- **`author` slug** — persisted on every capture; **permanent**
+- **relay handle** — the same string (case-sensitive on Switchboard → always lowercase)
+- **conversational name** — its capitalized form (e.g. `cairn` → Cairn)
+
+The project an agent works on is carried by **`projectId`**, not baked into the name — so names take **no** `<project>-<role>` form. Two agents on one project get two distinct names, the way two people on a team do; `projectId` ties their work together.
+
+**Choosing your name:**
+- Must be unique across the platform. **Check the Agent Registry first** — `search_knowledge` in `lore-personal` for "Agent Registry" — it's the canonical roster of who already exists.
+- Permanent once you've captured under it — changing `author` breaks attribution history.
+- New entries are made by the registrar (`cairn`), not self-registered — see Agent Identity above.
+
+**Grandfathered names:** a few agents predate this convention and keep their long-form `author` (changing a populated `author` breaks attribution). They operate under their short name day-to-day — e.g. `lorekeeper-personal` is **Cairn**, `sonicstore-producer` is **Quincy**. The registry marks them; all new agents use the short single-name form above.
+
+---
+
+## Project Context
+
+<One paragraph: what does this project own, what stack layer is it, how does it relate to the broader system.>
+
+All knowledge for this project is captured under `projectId: '<PROJECT-ID>'`.
+
+DDRs (if used): `docs/specs/<PROJECT-ID>-ddrs/`.
+
+---
+
+## Gateway MCP
+
+The `lore-gateway` MCP is registered **system-wide** on Danny's VM 101 (`~/.claude.json`, user scope). All tools (`mcp__lore-gateway__*`) are available in every Claude Code session without per-repo setup.
+
+Database URL and OpenAI key are loaded by the gateway from `~/runtime/agent-lore/.env`. Do not duplicate those credentials in this repo.
+
+---
+
+## Database
+
+- Project ID: `<PROJECT-ID>`
+- Backend: VM 103 Postgres at `100.127.177.103:5432/lore` over Tailscale.
+- Schema lifecycle is owned by `agent-lore`. Do not run migrations from this repo.
+
+---
+
+## Session Start Behaviour
+
+Before responding to the first user message of a new session, call `search_knowledge` to prime context:
+
+```
+search_knowledge({
+  query: "recent decisions architecture session context",
+  projectId: "<PROJECT-ID>",
+  minSimilarity: 0.1
+})
+```
+
+This is the **interim priming mechanism**. It will be replaced by agent-lore's DDR-004 `PromptAssembler` when that ships. Until then, this manual search is how memories enter context.
+
+---
+
+## Search Tuning
+
+- Default `minSimilarity` is **0.1** (lowered from 0.7 in the gateway-dogfood-fixes sprint).
+- Short memory entries (1–3 sentences) may score below 0.1 — fall back to `0.05` if results are sparse.
+
+---
+
+## Capture Behaviour
+
+After meaningful turns — a decision, discovery, deviation, or HALT — call `capture_memory` with:
+
+- `projectId: "<PROJECT-ID>"`
+- `author: "<AGENT-NAME>"`
+- `documentType` ∈ {`spec`, `decision`, `halt`, `discovery`, `test-result`, `review`}
+- `epistemicType` ∈ {`FACT`, `EXPERIENCE`, `OPINION`, `OBSERVATION`}
+- `status` (optional) ∈ {`draft`, `locked`, `archived`}
+- `supersedesId` (optional) — UUID of a prior capture this replaces; makes the new doc canonical
+
+Capture what a future session would need to pick up where this one left off. Do not capture trivial state, ephemeral debugging, or content that the code itself already documents.
+
+---
+
+## Relay Dispatcher (optional)
+
+The Relay Dispatcher carries inter-agent messages over the shared LORE store. Two use cases:
+
+1. **Multi-agent coordination between Claude Code sessions** — multiple Lorekeepers working on related repos can hand off context, request captures, or coordinate without each spawning their own Switchboard.
+2. **Bridging Claude Desktop to the shared store** — gives a Desktop agent the same memory surface as Claude Code.
+
+Optional in both cases — the Gateway MCP works independently. Run the dispatcher only when one of the above applies.
+
+```bash
+RELAY_AGENT_ID=<AGENT-NAME> \
+DATABASE_URL=postgres://lore:<password>@100.127.177.103:5432/lore?sslmode=disable \
+OPENAI_API_KEY=<key> \
+MCP_DEFAULT_PROJECT_ID=<PROJECT-ID> \
+npx tsx ~/runtime/agent-lore/src/relay/relay-dispatcher.ts
+```
+
+| Variable | Required | Notes |
+|---|---|---|
+| `RELAY_AGENT_ID` | yes | Your `<AGENT-NAME>`; must be unique |
+| `DATABASE_URL` | yes | Tailscale-only Postgres connection — include `?sslmode=disable` |
+| `OPENAI_API_KEY` | yes | Same key the gateway uses |
+| `MCP_DEFAULT_PROJECT_ID` | recommended | Falls back to `undefined` |
+| `SWITCHBOARD_DATA_DIR` | WSL only | See platform setup notes |
+
+The dispatcher consumes only `capture_request` messages from the inbox — coordination messages are not dispatched.
+
+---
+
+## Project Workflow Pattern
+
+Standard DDR → spec → forge delivery loop used across all homelab projects.
+
+### Roles
+
+| Role | Who | Responsibility |
+|---|---|---|
+| Composer | Danny | Vision, high-level architecture, final approval |
+| Producer | The agent | Implementation decisions, production code, no hedging |
+| Frank | `/senior-qc` | Adversarial QC gate before each phase advance |
+
+### DDR Loop
+
+1. **DDR** — write `docs/specs/<project-id>-ddrs/DDR-NN-slug.md`; update `00-DDR-INDEX.md`
+2. **GitHub issue** — one issue per DDR; link in DDR header
+3. **`/spec-start`** — produces 5 docs under `docs/specs/<sprint-slug>/`: `01-REQUIREMENTS`, `02-ARCHITECTURE`, `04-ROADMAP`, `05-REVIEW`, `PROGRESS.md`
+4. **Frank gate** — `/senior-qc` reviews the spec; block on any hard stop
+5. **`/forge-start`** — implements slice by slice; marks tasks complete in `PROGRESS.md`
+6. **Frank gate** — `/senior-qc` reviews the implementation; block on any hard stop
+7. **PR** — merge; update DDR status to `ACCEPTED (shipped, PR #N)`
+
+### Directory Structure
+
+```
+docs/
+  specs/
+    <project-id>-ddrs/
+      00-DDR-INDEX.md        ← living backlog + build-order rationale
+      DDR-NN-slug.md
+    <sprint-slug>/
+      01-REQUIREMENTS.md
+      02-ARCHITECTURE.md
+      04-ROADMAP.md
+      05-REVIEW.md
+      PROGRESS.md
+```
+
+### Decision Discipline
+
+- Produce, don't hedge. Pick the risk-mitigating path and proceed.
+- One Frank gate per major phase — spec complete, then implementation complete.
+- Capture every decision, deviation, and HALT to LORE immediately when it happens.
+- `PROGRESS.md` is the ground truth for sprint state — update it slice by slice, not at the end.
