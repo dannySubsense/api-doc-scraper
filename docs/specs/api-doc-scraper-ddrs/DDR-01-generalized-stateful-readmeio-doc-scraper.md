@@ -6,7 +6,7 @@
 | Date | 2026-06-25 |
 | Author | vellum |
 | Composer | Danny |
-| GitHub issue | _TBD — one issue per DDR; link on creation_ |
+| GitHub issue | [#1](https://github.com/dannySubsense/api-doc-scraper/issues/1) |
 | Supersedes | — |
 
 ---
