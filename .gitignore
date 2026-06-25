@@ -18,3 +18,9 @@ venv/
 # Scrape output (live snapshots are regenerated, not tracked)
 output/
 docs/*-reference-raw.md
+
+# Temporary files
+*.tmp
+
+# Playwright browser binaries (downloaded locally, not tracked)
+.playwright-browsers/

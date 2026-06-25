@@ -1,0 +1,14 @@
+platform: docusaurus
+polite_delay_seconds: 0.8
+output_dir: output/thatopen-tutorials
+output_mode: per_doc
+
+options:
+  sitemap_url: https://docs.thatopen.com/sitemap.xml
+  base_url: https://docs.thatopen.com
+  include_patterns:
+    - "/Tutorials/*"
+  content_selectors:
+    - article
+    - .theme-doc-markdown
+    - main

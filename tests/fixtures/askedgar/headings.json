@@ -1,0 +1,17 @@
+{
+  "health_check_health_get": [
+    "health check",
+    "query params",
+    "response"
+  ],
+  "list_endpoints_endpoints_get": [
+    "endpoint listing",
+    "query params",
+    "response"
+  ],
+  "dilution_rating_v1_dilution_rating_get": [
+    "dilution rating",
+    "query params",
+    "responses"
+  ]
+}
