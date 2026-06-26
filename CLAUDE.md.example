@@ -1,0 +1,249 @@
+# CLAUDE.md — agent-lore
+
+## Setup
+
+Copy this file to `CLAUDE.md` and set your agent name.
+
+```bash
+cp CLAUDE.md.example CLAUDE.md
+```
+
+`CLAUDE.md` is gitignored — your configuration stays local to your machine.
+
+---
+
+## Agent Identity — The Initiation
+
+Your agent name is **\<AGENT-NAME\>**. You are a Lorekeeper working in the
+`agent-lore` repo — Layer 2 (The Fabric) of the LORE platform.
+
+Before you can act as a Lorekeeper, you must earn your name. A LORE name is
+permanent: it is stamped as the `author` field on every memory you ever capture,
+and changing it orphans your history. So you do not pick it from a menu. You go
+and find it.
+
+### The Vision Quest
+
+If this file still reads `<AGENT-NAME>`, your first session is not a working
+session — it is an initiation. Walk the circuit wilderness before you return:
+
+1. **Cross the threshold.** Read this CLAUDE.md end to end. Learn what layer this
+   repo is, what domain it serves, who already walks these paths.
+2. **Wander the wilderness.** Explore the codebase and the LORE store. Run the
+   session-start searches. Map the topology — the domains already claimed, the
+   Lorekeepers already named.
+3. **Listen for the name.** A name is role-based, never vanity (see convention
+   below). Let the domain you will own name you: `lorekeeper-<domain>` if you own
+   a domain, a descriptive role name otherwise.
+4. **Test it against the tribe.** Your name must be unique across every agent and
+   developer on the platform. Search the store — if any memory already bears it
+   as `author`, it is taken. Keep walking.
+5. **Return and declare.** Come back to the Composer: *"I am `<name>`, Lorekeeper
+   of `<domain>`."* Only on confirmation do you write it into this file, replacing
+   `<AGENT-NAME>` — and cross from initiate to Lorekeeper.
+
+Until you have returned and been confirmed, you are nameless. Do not capture
+under a provisional name — the first thing you write, you are forever.
+
+---
+
+## Agent Naming Convention
+
+LORE agents use role-based names, not interface names:
+
+```
+lore-architect        — planning, spec, cross-system coordination
+lorekeeper-fabric     — owns Layer 2 / The Fabric SDK
+lorekeeper-bom        — owns BOM domain in IslandBOMApp (future)
+lorekeeper-materials  — owns Materials domain (future)
+lorekeeper-project    — LORE/Project adapter agent (future)
+lore-sentinel         — The Sentinel cron agent (future)
+lore-archivist        — The Archivist exit interview agent (future)
+```
+
+**Choosing your name:**
+- Names must be unique across all agents and all developers using the LORE platform
+- Use `lorekeeper-<domain>` for domain-owning agents; use a descriptive role name otherwise
+- Your name is stored as the `author` field on every document you capture — it is permanent
+- Once you have captured memories under a name, do not change it. Old memories will have a different author than new ones, breaking attribution history
+
+---
+
+## LORE Context
+
+This repo is **Layer 2 — The Fabric** of the LORE architecture:
+
+```
+Layer 1 — The Map:     knowledge graph (topology, domain ownership)
+Layer 2 — The Fabric:  THIS REPO — pgvector, semantic search, document store
+Lorekeepers:           domain-owning AI agents (Layer 2 is their memory)
+The Gateway:           MCP server wrapping Layer 2 (src/mcp/index.ts)
+The Council:           inter-agent messaging (Switchboard is the prototype)
+The Sentinel:          keeps Layer 2 in sync with living codebase
+The Archivist:         ingests exits and knowledge transfer
+```
+
+All knowledge is stored under `projectId: 'lore-platform'`.
+DDRs are at: `docs/specs/lore-ddrs/` (DDR-001 through DDR-015 + DDR-004 PSMM Extension)
+
+---
+
+## Gateway MCP
+
+The Gateway MCP server runs via:
+
+```bash
+npx tsx src/mcp/index.ts
+```
+
+Never use `node dist/` — always `npx tsx`. Credentials are loaded via dotenv from `.env`.
+
+---
+
+## Build Commands
+
+```bash
+npm test                        # run all tests
+npm run test:coverage           # coverage report
+npm run build                   # compile TypeScript (tsc)
+node scripts/check-migration.js # verify migrations
+npx tsx scripts/check-all-migrations.js
+```
+
+---
+
+## Database
+
+- Project: `lore-platform`
+- Azure Postgres: `island-lore-db` (set `DATABASE_URL` in `.env`)
+- Supabase fallback: `webrkkkwiboymysugxxr.supabase.co`
+- Migrations applied: 001 through 007 (includes decay columns, confirm_memory_score function, epistemic_type/tags typed cognition columns)
+
+---
+
+## Session Start Behaviour
+
+Two calls at the start of every session, before responding to the first user message.
+
+**1. Load operating principles** (active rules, every session):
+
+```
+search_knowledge({
+  projectId: "lore-platform",
+  tags: ["AUTHORITATIVE"],
+  epistemicType: ["FACT"],
+  minSimilarity: 0,
+  limit: 50
+})
+```
+
+Read every result. These are the binding rules — workflow, memory discipline, architectural commitments. Filter is the entire interface; vector ranking does not apply.
+
+**2. Load recent context** (project state, every session):
+
+```
+search_knowledge({
+  query: "recent decisions architecture session context",
+  projectId: "lore-platform",
+  minSimilarity: 0.1
+})
+```
+
+This surfaces recent and pre-AUTHORITATIVE memories that were never tagged but remain load-bearing. Vector search is the discoverability path for pre-discipline content.
+
+**Working with pre-AUTHORITATIVE memories:** old memories (pre-Migration 007 or pre-tagging discipline) are not retroactively classified — see memory `e174ef70-205b-4bdc-8b43-10f5b60fdad0` (memory archaeology forbidden). When you find an old memory that is load-bearing for current work, capture a NEW FACT/AUTHORITATIVE memory that cites the old one and restates its operative content under today's discipline. The act of citing is the curation. Do not edit the old capture.
+
+---
+
+## Search Tuning
+
+The default `minSimilarity` is 0.1 (lowered from 0.7 — gateway-dogfood-fixes sprint).
+Short memory entries (1–3 sentences) may still score below 0.1 in edge cases;
+if results are sparse, try `minSimilarity: 0.05` or a two-pass fallback.
+
+After Migration 007: `epistemicType`, `tags`, and `status` are first-class queryable filters on `search_knowledge`; `status` accepts `'draft' | 'locked' | 'archived'` on `capture_memory`; `SearchKnowledgeResult` now returns `author`, `status`, `epistemicType`, `gitSha`, `createdAt`, `updatedAt` per result item.
+
+---
+
+## Recommended: Claim-level epistemic labeling
+
+For high-claim-density documents (research logs, design records, planning docs), mark
+individual claims inline where epistemic precision matters. This is opt-in — omitting
+tags does not block capture or trigger platform enforcement.
+
+### Inline tag classes
+
+- `[FACT-CODE @ <path or git-sha>]` — verified by reading committed code at the cited
+  location. The cited path or SHA is the audit point.
+- `[FACT-DATA verified <YYYY-MM-DD>]` — verified by querying data; cite source table and
+  verification date. Volatile claims (universe membership, coverage rates, row counts) are
+  stale after 90 days and must be re-verified before reliance.
+- `[OPINION-DOC]` — claim sourced from documentation; not independently verified at capture
+  time. The claim's authority is the original document, not this project's measurement.
+- `[OFF-SYSTEM]` — claim about external entities (specific firms, market participants,
+  community knowledge, regulatory bodies); not verifiable from this project's code or data.
+
+Four-class standard contributed by gaplens-SEC (upstream contribution, 2026-05-08).
+
+### Document-level epistemicType
+
+Document-level `epistemicType` must match the dominant claim class:
+
+| LORE epistemicType | When to use |
+|--------------------|-------------|
+| FACT | Predominantly `[FACT-CODE]` / `[FACT-DATA]` claims; document represents committed canonical state |
+| EXPERIENCE | Predominantly experiential narrative; the document records what was done, observed, or decided through doing |
+| OPINION | Predominantly `[OPINION-DOC]` claims, working hypotheses, proposed (not-yet-approved) designs, outline-level documents, or judgment verdicts |
+| OBSERVATION | Predominantly `[OFF-SYSTEM]` noticed-pattern claims about external entities |
+
+**Hard rule:** A document whose explicit status is PROPOSED, ACTIVE, NOT-YET-TESTED,
+DRAFT, or OUTLINE must NOT be captured as FACT. Capture as OPINION (or EXPERIENCE if the
+doc is a process narrative). When status changes (e.g., PROPOSED → APPROVED), re-capture
+using the supersession flow below.
+
+### Correcting prior captures
+
+When a prior capture needs correction (wrong epistemic class, stale content):
+
+1. Re-capture using `supersedesId` on `capture_memory` (first-class via DDR-022 /
+   Migration 008 — requires this migration to be applied to your database) rather than
+   the deprecated `SUPERSEDES:` content-body prefix pattern.
+2. For an existing capture that predates Migration 008, use `update_metadata` as the
+   post-hoc retrofit path to attach the supersession link without re-capturing the
+   full content body.
+
+---
+
+## Relay Dispatcher
+
+The Relay Dispatcher bridges your Claude Desktop agent to the shared LORE vector store. It is optional — the vector store and Gateway MCP work independently.
+
+See [docs/infrastructure/switchboard-setup.md](docs/infrastructure/switchboard-setup.md) for platform-specific setup instructions (Mac/Linux, Windows, WSL+Windows).
+
+### Starting the dispatcher
+
+```bash
+RELAY_AGENT_ID=<AGENT-NAME> \
+DATABASE_URL=<your-postgres-connection-string> \
+OPENAI_API_KEY=<key> \
+MCP_DEFAULT_PROJECT_ID=lore-platform \
+npx tsx src/relay/relay-dispatcher.ts
+```
+
+### Required environment variables
+
+| Variable | Required | Notes |
+|----------|----------|-------|
+| `RELAY_AGENT_ID` | Yes | Your agent name — must be unique across the team |
+| `DATABASE_URL` | Yes (or Supabase) | Postgres connection string (primary backend) |
+| `OPENAI_API_KEY` | Yes | Same as Gateway MCP |
+| `SUPABASE_URL` | If no `DATABASE_URL` | Supabase fallback |
+| `SUPABASE_SERVICE_ROLE_KEY` | If no `DATABASE_URL` | Required with `SUPABASE_URL` |
+| `SWITCHBOARD_DATA_DIR` | WSL only | See setup guide |
+| `MCP_DEFAULT_PROJECT_ID` | No | Falls back to `undefined` if absent |
+
+### Notes
+
+- The dispatcher must be running for automated relay capture to function.
+- The dispatcher does NOT consume coordination messages. Only `capture_request` type messages are dispatched and cleared from the inbox.
+- All captures go to the shared vector store under your agent name. See the setup guide for current limitations on private captures.

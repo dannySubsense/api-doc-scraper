@@ -1,0 +1,7 @@
+platform: github_org
+options:
+  org: ThatOpen
+  include_archived: false
+polite_delay_seconds: 0.8
+output_dir: output/thatopen-github
+output_mode: per_doc
