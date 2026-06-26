@@ -27,6 +27,7 @@ import os
 import re
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from typing import Optional
@@ -302,8 +303,9 @@ class GitHubOrgAdapter(PlatformAdapter):
                 f"recording as NFR-4 failure (git_ref would be null)"
             )
 
-        # Fetch raw markdown
-        raw_url = f"{_RAW_BASE}/{org}/{repo_name}/{default_branch}/{file_path}"
+        # Fetch raw markdown — encode path so spaces/special chars don't break the URL
+        encoded_path = urllib.parse.quote(file_path, safe="/")
+        raw_url = f"{_RAW_BASE}/{org}/{repo_name}/{default_branch}/{encoded_path}"
         try:
             raw_markdown = _raw_get(raw_url)
         except Exception as exc:
